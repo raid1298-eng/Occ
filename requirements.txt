@@ -1,1 +1,56 @@
-streamlit
+import streamlit as st
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+
+# إعدادات واجهة التطبيق
+st.set_page_config(page_title="مقارنة بيانات الاوبن", layout="wide")
+st.title("📊 سحب بيانات 'الاوبن' والمقارنة")
+st.write("هذا التطبيق يقوم بسحب البيانات من الموقع ومقارنتها بشكل مباشر.")
+
+# مربع لإدخال رابط الموقع
+url = st.text_input("أدخل رابط الموقع اللي تبي تسحب منه:", "https://example.com")
+
+if st.button("🚀 اسحب البيانات الآن"):
+    with st.spinner("جاري سحب البيانات..."):
+        try:
+            # 1. الاتصال بالموقع وجلب الكود البرمجي للصفحة
+            headers = {'User-Agent': 'Mozilla/5.0'} # عشان الموقع ما يحظرنا
+            response = requests.get(url, headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # --- ملاحظة هامة لك ---
+            # هنا لازم تحدد الـ Class أو الـ ID الخاص بـ "الاوبن" من الموقع المستهدف.
+            # سويت لك مثال توضيحي عشان تشوف الفكرة كيف تشتغل:
+            
+            # open_values = soup.find_all('div', class_='open-price-class') 
+            
+            # بيانات وهمية للتجربة (إلين نربطها ببيانات الموقع الحقيقية)
+            data = {
+                "الشركة/العنصر": ["العنصر A", "العنصر B", "العنصر C"],
+                "سعر الاوبن اليوم": [150.5, 45.0, 320.1],
+                "سعر الاوبن أمس": [148.0, 46.5, 310.0]
+            }
+            
+            # 2. ترتيب البيانات في جدول (DataFrame)
+            df = pd.DataFrame(data)
+            
+            # 3. عملية المقارنة (الفرق بين اليوم وأمس)
+            df['الفرق'] = df['سعر الاوبن اليوم'] - df['سعر الاوبن أمس']
+            
+            # تحديد حالة السهم (أخضر إذا مرتفع، أحمر إذا نازل)
+            def highlight_diff(val):
+                color = 'green' if val > 0 else 'red' if val < 0 else 'gray'
+                return f'color: {color}; font-weight: bold'
+
+            # عرض الجدول في التطبيق مع الألوان
+            st.subheader("📋 جدول المقارنة")
+            st.dataframe(df.style.applymap(highlight_diff, subset=['الفرق']), use_container_width=True)
+            
+            # 4. عرض رسم بياني سريع للمقارنة
+            st.subheader("📉 رسم بياني للمقارنة")
+            chart_data = df.set_index("الشركة/العنصر")[['سعر الاوبن اليوم', 'سعر الاوبن أمس']]
+            st.bar_chart(chart_data)
+
+        except Exception as e:
+            st.error(f"حدث خطأ أثناء محاولة سحب البيانات: {e}")
